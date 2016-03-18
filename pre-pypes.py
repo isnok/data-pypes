@@ -1,63 +1,23 @@
 #!/usr/bin/env python
-""" The Pypes micro-framework offers you to wrap your data processing functions
-    with `PypeSegment`s, that you can compose to `PypeLine`s. In return you get
-    a conveniently set up logging facility, and some structure in your data flow.
 
-    It also adds a layer of reusability to your code, but that still depends
-    a great deal on how you design the inputs and outputs of your process steps.
-
-    The framework tries to stay minimal, also in terms of what you need to know
-    about it. Currently it mainly consists of two classes and one function:
-        * PypeSegment:
-            Inheriting from this class and defining a process method is all it
-            takes. You can optionally define check_inputs, to validate your
-            inputs before processing.
-
-        * PypeLine:
-            A chain of PypeSegments. It can be used as a Segment itself.
-
-        * wrap_for_next_segment():
-            Call this, how you would call the next processing function and
-            return its result. It will create a wrapper object to ship the
-            results/arguments through the PypeLine code.
-
-    It can be configured through one environment variable or method:
-"""
-
-import os
 import logging
 
-def sanitize_loglevel(level=None):
-
-    if level is None:
-        level = os.environ.get('LOGLEVEL')
-
-    if level is None:
-        return logging.INFO
-    if isinstance(level, (int, float)):
-        return int(level)
-    elif level == str(level) and level.isdigit():
-        return int(level)
-    else:
-        return logging._checkLevel(level.upper())
-
-from functools import partial
 from collections import namedtuple
 
 NextInput = namedtuple('NextInput', ['args', 'kwd'])
 
-def wrap_for_next_segment(*args, **kwd):
+def wrap_result_for_next_call(*args, **kwd):
     return NextInput(args, kwd)
 
 
-class PypeSegment(object):
+class PipeSegment(object):
 
     """ A (reusable) processing step.
 
         The initializer should be called by subclasses
         that do real processing.
 
-        >>> p = PypeSegment('log-signature')
+        >>> p = PipeSegment('log-signature')
         >>> p.check_inputs()
         >>> p.process()
         NextInput(args=(), kwd={})
@@ -70,21 +30,13 @@ class PypeSegment(object):
 
             Currently this includes:
                 - custom logger (self.log)
-                - convenient access to log methods (self.log.error, ...)
         """
 
         if name is not None:
             self.name = name
 
-        self.init_logging()
-
-    def init_logging(self):
-
-        logger = self.log = logging.getLogger(str(self))
-
-        # default stream is stdout:
+        logger = logging.getLogger(str(self))
         handler = logging.StreamHandler()
-        self.set_loglevel()
         formatter = logging.Formatter(
             ' - '.join([
                 '%(asctime)s',
@@ -96,12 +48,10 @@ class PypeSegment(object):
             ])
         )
         handler.setFormatter(formatter)
-
         logger.addHandler(handler)
-
-    def set_loglevel(self, level=None):
-        level = sanitize_loglevel(level)
-        self.log.setLevel(level)
+        logger.setLevel(logging.DEBUG)
+        self.logger = logger
+        self.log = logger.info
 
     def __str__(self):
         return '{}.{}'.format(
@@ -113,7 +63,7 @@ class PypeSegment(object):
         """ Called before processing, to allow early crashing.
 
             If self is not the first segment, the previous
-            PypeSegment is given, to allow a better error
+            PipeSegment is given, to allow a better error
             message or warning.
         """
 
@@ -129,11 +79,11 @@ class PypeSegment(object):
             (which would be one argument to the next segment)
             in the DataPipe logic.
         """
-        return wrap_for_next_segment()
+        return wrap_result_for_next_call()
 
 
 
-class PypeLine(PypeSegment):
+class DataPipe(PipeSegment):
 
     """ A chain of (reusable) processing steps.
     """
@@ -143,7 +93,7 @@ class PypeLine(PypeSegment):
             argument, since it is more important, but we
             perserve the name argument.
         """
-        super(PypeLine, self).__init__(name)
+        super(DataPipe, self).__init__(name)
         self.segments = [] if segments is None else segments
 
     def check_inputs(self, previous=None, *args, **kwd):
@@ -153,7 +103,7 @@ class PypeLine(PypeSegment):
     def process(self, *args, **kwd):
         """ Process inputs and deliver an output. """
 
-        self.log.info('%s starting' % self)
+        self.log('%s starting' % self)
 
         data = NextInput(args, kwd)
         previous = None
@@ -164,27 +114,59 @@ class PypeLine(PypeSegment):
             if not isinstance(data, NextInput):
                 data = NextInput([data], {})
 
-            self.log.debug('next input: %s', data)
+            self.log('next input: %s', data)
 
             # let the next segment check the input (and probably crash early)
             segment.check_inputs(previous, *data.args, **data.kwd)
 
-            self.log.info('%s says: input is ok.' % segment)
+            self.log('%s says: input is ok.' % segment)
 
             # do the processing
             data = segment.process(*data.args, **data.kwd)
 
-            self.log.info('%s: result = %s' % (segment, data))
+            self.log('%s: result = %s' % (segment, data))
 
             # goto next
             previous = segment
 
-        self.log.info('output = %s', data)
+        self.log('%s: output = %s' % (self, data))
 
         return data
 
 
+def demo():
+    """ Usage example. """
+
+    class FirstDemoProcess(PipeSegment):
+
+        def __init__(self, name):
+            super(FirstDemoProcess, self).__init__()
+            self.name = name
+
+        def process(self, stuff):
+            self.log('I work the stuff: %s' % stuff)
+            return 'Stuff was worked...'
+
+
+    class SecondDemoProcess(FirstDemoProcess):
+
+        def process(self, some, more=None):
+            self.log(some + ' %s', more)
+            return wrap_result_for_next_call(stuff='Preprocessed by %s.' % self)
+
+
+    p = DataPipe(
+        [
+            FirstDemoProcess('one'),
+            SecondDemoProcess('two'),
+            FirstDemoProcess('three')
+        ],
+        name='demopipe'
+    )
+
+    final = p.process('Initial Stuff.')
+    print("Final result: %s" % final)
+
 
 if __name__ == '__main__':
-    import doctest
-    doctest.testmod()
+    demo()
