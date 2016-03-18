@@ -1,0 +1,4 @@
+2016-03-19 00:18:51,733 - MainProcess - [25] SUCCESS - pypes:144 - PypeLine.demopipe - starting up
+2016-03-19 00:18:51,733 - MainProcess - [30] WARNING - pypes-example:13 - FirstDemoProcess.default - I work the stuff: Initial Stuff.
+2016-03-19 00:18:51,734 - MainProcess - [30] WARNING - pypes-example:20 - SecondDemoProcess.default - Stuff was worked... None
+2016-03-19 00:18:51,734 - MainProcess - [30] WARNING - pypes-example:13 - FirstDemoProcess.default - I work the stuff: Preprocessed by SecondDemoProcess.two.

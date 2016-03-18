@@ -21,28 +21,35 @@
             return its result. It will create a wrapper object to ship the
             results/arguments through the PypeLine code.
 
-    It can be configured through one environment variable or method:
+    Logging can be configured through a bunch of environment variables:
+
+        LOGLEVEL:
+            the general loglevel
+        STDOUT_LOGLEVEL:
+            the loglevel of the console output
+        <LEVELNAME>_LOGFILE:
+            if such a variable is defined,
+            a filelogger for that level is created
+            and added to the logging facility
+
+        If you run your_program.py like this:
+
+        STDOUT_LOGLEVEL=debug LOGLEVEL=info ERROR_LOGFILE=error.log your_program.py
+
+        Then error.log will contain all log messages of level ERROR and higher.
+        On stdout you will still just see all messages from INFO on, since the
+        general LOGLEVEL is set to this level, and thus messages with a lower
+        loglevel will just not be handled. This is also why you should avoid
+        formatting log messages right away, but let the logging facility take
+        care of that instead, because then you can save the performance cost of
+        formatting large data structures (say on loglevel DEBUG), by setting
+        the general loglevel (when not debugging) to some higher level.
 """
 
-import os
-import logging
+from .logsetup import setup_logger
 
-def get_loglevel(level=None):
-
-    if level is None:
-        level = os.environ.get('LOGLEVEL')
-
-    if level is None:
-        return logging.INFO
-    if isinstance(level, (int, float)):
-        return int(level)
-    elif level == str(level) and level.isdigit():
-        return int(level)
-    else:
-        return logging._checkLevel(level.upper())
-
-from functools import partial
 from collections import namedtuple
+
 
 NextInput = namedtuple('NextInput', ['args', 'kwd'])
 
@@ -69,47 +76,14 @@ class PypeSegment(object):
         """ Set up a convenient processing environment.
 
             Currently this includes:
-                - custom logger (self.log)
-                - readable log format, if loglevel is info, detailed else
+                self.__str__ - human readable string formatting
+                self.log - custom logger using name as log-signature
         """
 
         if name is not None:
             self.name = name
 
-        self.init_logging()
-
-    def init_logging(self):
-
-        logger = self.log = logging.getLogger(str(self))
-
-        # default stream is stdout:
-        handler = logging.StreamHandler()
-
-        level = get_loglevel()
-        logger.setLevel(level)
-
-        if logging.DEBUG < level <= logging.INFO:
-            fmt = ' - '.join([
-                '%(asctime)s',
-                # '%(levelname)-4.4s',
-                # '%(module)s:%(lineno)d',
-                str(self),
-                '%(message)s',
-            ])
-        else:
-            fmt = ' - '.join([
-                '%(asctime)s',
-                '%(processName)s',
-                '%(levelname)-8s',
-                '%(module)s:%(lineno)d',
-                str(self),
-                '%(message)s',
-            ])
-        formatter = logging.Formatter(fmt)
-
-        handler.setFormatter(formatter)
-        logger.addHandler(handler)
-        # logger.error('loglevel: %s', level)
+        self.log = setup_logger(str(self))
 
     def __str__(self):
         return '{}.{}'.format(
@@ -123,6 +97,12 @@ class PypeSegment(object):
             If self is not the first segment, the previous
             PypeSegment is given, to allow a better error
             message or warning.
+
+            This method is called before the processing starts,
+            and it's meaning is not fully shaped out yet.
+            It's return value is ignored, and if it raises an
+            exception, it will prevent the processing from being
+            triggered by a Pypeline.
         """
 
         if False:
@@ -144,7 +124,17 @@ class PypeSegment(object):
 class PypeLine(PypeSegment):
 
     """ A chain of (reusable) processing steps.
+
+    >>> pype = PypeLine([PypeSegment('noop')], name='test')
+    >>> str(pype)
+    'PypeLine.test'
+    >>> len(pype.segments)
+    1
+    >>> pype.process()
+    NextInput(args=(), kwd={})
     """
+
+    continue_on_errors = False
 
     def __init__(self, segments=None, name=None):
         """ We add the segments argument as the new first
@@ -161,7 +151,7 @@ class PypeLine(PypeSegment):
     def process(self, *args, **kwd):
         """ Process inputs and deliver an output. """
 
-        self.log.info('starting up')
+        self.log.success('starting up')
 
         data = NextInput(args, kwd)
         previous = None
@@ -190,7 +180,6 @@ class PypeLine(PypeSegment):
         self.log.info('output = %s', data)
 
         return data
-
 
 
 if __name__ == '__main__':
