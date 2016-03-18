@@ -27,7 +27,7 @@
 import os
 import logging
 
-def sanitize_loglevel(level=None):
+def get_loglevel(level=None):
 
     if level is None:
         level = os.environ.get('LOGLEVEL')
@@ -70,7 +70,7 @@ class PypeSegment(object):
 
             Currently this includes:
                 - custom logger (self.log)
-                - convenient access to log methods (self.log.error, ...)
+                - readable log format, if loglevel is info, detailed else
         """
 
         if name is not None:
@@ -84,24 +84,32 @@ class PypeSegment(object):
 
         # default stream is stdout:
         handler = logging.StreamHandler()
-        self.set_loglevel()
-        formatter = logging.Formatter(
-            ' - '.join([
+
+        level = get_loglevel()
+        logger.setLevel(level)
+
+        if logging.DEBUG < level <= logging.INFO:
+            fmt = ' - '.join([
+                '%(asctime)s',
+                # '%(levelname)-4.4s',
+                # '%(module)s:%(lineno)d',
+                str(self),
+                '%(message)s',
+            ])
+        else:
+            fmt = ' - '.join([
                 '%(asctime)s',
                 '%(processName)s',
-                '%(levelname)s',
+                '%(levelname)-8s',
                 '%(module)s:%(lineno)d',
                 str(self),
                 '%(message)s',
             ])
-        )
+        formatter = logging.Formatter(fmt)
+
         handler.setFormatter(formatter)
-
         logger.addHandler(handler)
-
-    def set_loglevel(self, level=None):
-        level = sanitize_loglevel(level)
-        self.log.setLevel(level)
+        # logger.error('loglevel: %s', level)
 
     def __str__(self):
         return '{}.{}'.format(
@@ -153,7 +161,7 @@ class PypeLine(PypeSegment):
     def process(self, *args, **kwd):
         """ Process inputs and deliver an output. """
 
-        self.log.info('%s starting' % self)
+        self.log.info('starting up')
 
         data = NextInput(args, kwd)
         previous = None
