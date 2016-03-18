@@ -1,23 +1,43 @@
 #!/usr/bin/env python
 
+import logging
+
 from collections import namedtuple
 
 NextInput = namedtuple('NextInput', ['args', 'kwd'])
+
+def wrap_result_for_next_call(*args, **kwd):
+    return NextInput(args, kwd)
+
 
 class PipeSegment(object):
 
     """ A (reusable) processing step.
 
-        The initializer is left out here on purpose,
-        so that it can be used by the subclasses that
-        do real processing.
+        The initializer should be called by subclasses
+        that do real processing.
     """
+
+    def __init__(self):
+        """ Set up a convenient processing environment.
+
+            Currently this includes:
+                - custom logger (self.log)
+        """
+        logger = logging.getLogger(self.__class__.__name__)
+        logger.addHandler(logging.StreamHandler())
+        logger.setLevel(logging.DEBUG)
+        self.logger = logger
+        self.log = logger.info
+
+
 
     def check_inputs(self, previous=None, *args, **kwd):
         """ Called before processing, to allow early crashing.
 
-            If existing, the previous PipeSegment is given, to allow
-            for a better error message.
+            If self is not the first segment, the previous
+            PipeSegment is given, to allow a better error
+            message or warning.
         """
 
         if False:
@@ -25,18 +45,23 @@ class PipeSegment(object):
             raise ValueError(msg.format(previous, self))
 
     def process(self, *args, **kwd):
-        """ Process inputs and deliver an output. """
+        """ Process inputs and deliver an output.
 
-    def log(self, *args):
-        """ TODO: use real logging """
-        print ' '.join([str(a) for a in args])
+            This default implementation shows how to
+            return absolutely nothing, not even a None
+            (which would be one argument to the next segment)
+            in the DataPipe logic.
+        """
+        return wrap_result_for_next_call()
 
 
-class DataPipe(object):
+
+class DataPipe(PipeSegment):
 
     """ A chain of (reusable) processing steps. """
 
     def __init__(self, segments=None):
+        super(DataPipe, self).__init__()
         self.segments = [] if segments is None else segments
 
     def check_inputs(self, previous=None, *args, **kwd):
@@ -72,11 +97,9 @@ class DataPipe(object):
             # goto next
             previous = segment
 
-        return data
+        self.log('%s: output = %s' % (self, data))
 
-    def log(self, *args):
-        """ TODO: use real logging """
-        print ' '.join([str(a) for a in args])
+        return data
 
 
 def demo():
@@ -85,21 +108,22 @@ def demo():
     class FirstDemoProcess(PipeSegment):
 
         def __init__(self, name):
+            super(FirstDemoProcess, self).__init__()
             self.name = name
 
         def __repr__(self):
             return str(self.name)
 
         def process(self, stuff):
-            self.log(self, 'I work the stuff: %s' % stuff)
+            self.log('I work the stuff: %s' % stuff)
             return 'Stuff was worked...'
 
 
     class SecondDemoProcess(FirstDemoProcess):
 
         def process(self, some, more=None):
-            self.log(self, some, more)
-            return NextInput([], {'stuff': 'Preprocessed by %s.' % self})
+            self.log(some + ' %s', more)
+            return wrap_result_for_next_call(stuff='Preprocessed by %s.' % self)
 
 
     p = DataPipe([FirstDemoProcess('one'), SecondDemoProcess('two'), FirstDemoProcess('three')])
