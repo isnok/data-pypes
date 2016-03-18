@@ -16,21 +16,48 @@ class PipeSegment(object):
 
         The initializer should be called by subclasses
         that do real processing.
-    """
 
-    def __init__(self):
+        >>> p = PipeSegment('log-signature')
+        >>> p.check_inputs()
+        >>> p.process()
+        NextInput(args=(), kwd={})
+
+    """
+    name = 'default'
+
+    def __init__(self, name=None):
         """ Set up a convenient processing environment.
 
             Currently this includes:
                 - custom logger (self.log)
         """
-        logger = logging.getLogger(self.__class__.__name__)
-        logger.addHandler(logging.StreamHandler())
+
+        if name is not None:
+            self.name = name
+
+        logger = logging.getLogger(str(self))
+        handler = logging.StreamHandler()
+        formatter = logging.Formatter(
+            ' - '.join([
+                '%(asctime)s',
+                '%(processName)s',
+                '%(levelname)s',
+                '%(module)s:%(lineno)d',
+                str(self),
+                '%(message)s',
+            ])
+        )
+        handler.setFormatter(formatter)
+        logger.addHandler(handler)
         logger.setLevel(logging.DEBUG)
         self.logger = logger
         self.log = logger.info
 
-
+    def __str__(self):
+        return '{}.{}'.format(
+            self.__class__.__name__,
+            self.name,
+        )
 
     def check_inputs(self, previous=None, *args, **kwd):
         """ Called before processing, to allow early crashing.
@@ -58,10 +85,15 @@ class PipeSegment(object):
 
 class DataPipe(PipeSegment):
 
-    """ A chain of (reusable) processing steps. """
+    """ A chain of (reusable) processing steps.
+    """
 
-    def __init__(self, segments=None):
-        super(DataPipe, self).__init__()
+    def __init__(self, segments=None, name=None):
+        """ We add the segments argument as the new first
+            argument, since it is more important, but we
+            perserve the name argument.
+        """
+        super(DataPipe, self).__init__(name)
         self.segments = [] if segments is None else segments
 
     def check_inputs(self, previous=None, *args, **kwd):
@@ -82,12 +114,12 @@ class DataPipe(PipeSegment):
             if not isinstance(data, NextInput):
                 data = NextInput([data], {})
 
-            self.log('%s: input = %s' % (self, data))
+            self.log('next input: %s', data)
 
             # let the next segment check the input (and probably crash early)
             segment.check_inputs(previous, *data.args, **data.kwd)
 
-            self.log('%s: input is ok.' % segment)
+            self.log('%s says: input is ok.' % segment)
 
             # do the processing
             data = segment.process(*data.args, **data.kwd)
@@ -111,9 +143,6 @@ def demo():
             super(FirstDemoProcess, self).__init__()
             self.name = name
 
-        def __repr__(self):
-            return str(self.name)
-
         def process(self, stuff):
             self.log('I work the stuff: %s' % stuff)
             return 'Stuff was worked...'
@@ -126,7 +155,14 @@ def demo():
             return wrap_result_for_next_call(stuff='Preprocessed by %s.' % self)
 
 
-    p = DataPipe([FirstDemoProcess('one'), SecondDemoProcess('two'), FirstDemoProcess('three')])
+    p = DataPipe(
+        [
+            FirstDemoProcess('one'),
+            SecondDemoProcess('two'),
+            FirstDemoProcess('three')
+        ],
+        name='demopipe'
+    )
 
     final = p.process('Initial Stuff.')
     print("Final result: %s" % final)
