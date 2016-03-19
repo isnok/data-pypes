@@ -39,6 +39,8 @@
 
         >>> logger = setup_logger('test')
         >>> logger.info('Result invisible to doctest...')
+
+        Color will be used for stdout, if sys.stdout.isatty().
 """
 import os
 import sys
@@ -89,8 +91,55 @@ def get_logconfig():
     else:
         stdout_loglevel = level
 
+    color_stdout = 'COLOR_STDOUT' in os.environ
+
     return level, stdout_loglevel, files
 
+reset_color = '\033[0m'
+termcolors = dict(
+    off=reset_color,
+    black='\033[90m',
+    red='\033[91m',
+    green='\033[92m',
+    yellow='\033[93m',
+    blue='\033[94m',
+    purple='\033[95m',
+    cyan='\033[96m',
+    white='\033[97m',
+    eight='\033[98m',
+)
+def colored(color, string):
+    sequence = termcolors.get(color, reset_color)
+    return '{}{}{}'.format(sequence, string, reset_color)
+
+def stdout_log_format(name):
+    if not sys.stdout.isatty():
+        fmt = ' - '.join([
+            '%(asctime)s',
+            '[%(levelno)d] %(levelname)-8.8s',
+            name,
+            '%(message)s',
+        ])
+    else:
+        fmt = colored('purple', ' - ').join([
+            colored('blue', '%(asctime)s'),
+            colored('yellow', '[%(levelno)d] %(levelname)-8.8s'),
+            colored('green', name),
+            colored('white', '%(message)s'),
+        ])
+    return fmt
+
+def file_log_format(name):
+    fmt = ' - '.join([
+        '%(asctime)s',
+        '%(processName)s',
+        # '%(levelname)-8s',
+        '[%(levelno)d] %(levelname)-7s',
+        '%(module)s:%(lineno)d',
+        name,
+        '%(message)s',
+    ])
+    return fmt
 
 loggers = {}
 
@@ -109,31 +158,15 @@ def setup_logger(name):
     logger = logging.getLogger(name)
     logger.setLevel(level)
 
-    stdout_handler = logging.StreamHandler()
+    stdout_handler = logging.StreamHandler(sys.stdout)
     stdout_handler.setLevel(stdout_level)
-    readable_fmt = ' - '.join([
-        '%(asctime)s',
-        # '%(levelname)-4.4s',
-        '[%(levelno)d] %(levelname)-8.8s',
-        # '%(module)s:%(lineno)d',
-        name,
-        '%(message)s',
-    ])
-    readable_formatter = logging.Formatter(readable_fmt)
+    stdout_format = stdout_log_format(name)
+    readable_formatter = logging.Formatter(stdout_format)
     stdout_handler.setFormatter(readable_formatter)
     logger.addHandler(stdout_handler)
 
     if files:
-        logfile_fmt = ' - '.join([
-            '%(asctime)s',
-            '%(processName)s',
-            # '%(levelname)-8s',
-            '[%(levelno)d] %(levelname)-7s',
-            '%(module)s:%(lineno)d',
-            name,
-            '%(message)s',
-        ])
-        logfile_formatter = logging.Formatter(logfile_fmt)
+        logfile_formatter = logging.Formatter(file_log_format(name))
         for levelname, filename in files.items():
             handler = logging.FileHandler(filename, encoding='utf-8')
             handler.setLevel(levelname)

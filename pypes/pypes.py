@@ -178,7 +178,7 @@ class PypeLine(PypeSegment):
                 data = segment.process(*data.args, **data.kwd)
                 self.log.info('%s is done', segment)
 
-            except Exception as ex:
+            except Exception:
                 if self.continue_on_errors:
                     self.log.warning(
                         '%s failed, but processing will continue.', segment,
