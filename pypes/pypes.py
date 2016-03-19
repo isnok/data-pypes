@@ -65,10 +65,13 @@ class PypeSegment(object):
         that do real processing.
 
         >>> p = PypeSegment('log-signature')
+        >>> str(p)
+        'PypeSegment.log-signature'
         >>> p.check_inputs()
         >>> p.process()
         NextInput(args=(), kwd={})
-
+        >>> p.process('Hello', world='World!')
+        NextInput(args=('Hello',), kwd={'world': 'World!'})
     """
     name = 'default'
 
@@ -112,12 +115,10 @@ class PypeSegment(object):
     def process(self, *args, **kwd):
         """ Process inputs and deliver an output.
 
-            This default implementation shows how to
-            return absolutely nothing, not even a None
-            (which would be one argument to the next segment)
-            in the DataPipe logic.
+            This default implementation just wraps its arguments and passes
+            them on as its output.
         """
-        return wrap_for_next_segment()
+        return wrap_for_next_segment(*args, **kwd)
 
 
 
@@ -125,33 +126,37 @@ class PypeLine(PypeSegment):
 
     """ A chain of (reusable) processing steps.
 
-    >>> pype = PypeLine([PypeSegment('noop')], name='test')
+    >>> lst = [PypeSegment('noop'), PypeSegment('noop')]
+    >>> pype = PypeLine(lst, name='test')
     >>> str(pype)
     'PypeLine.test'
     >>> len(pype.segments)
-    1
+    2
     >>> pype.process()
     NextInput(args=(), kwd={})
     """
 
     continue_on_errors = False
 
-    def __init__(self, segments=None, name=None):
+    def __init__(self, segments=None, name=None, continue_on_errors=None):
         """ We add the segments argument as the new first
             argument, since it is more important, but we
             perserve the name argument.
         """
         super(PypeLine, self).__init__(name)
         self.segments = [] if segments is None else segments
+        if continue_on_errors is not None:
+            self.continue_on_errors = continue_on_errors
 
     def check_inputs(self, previous=None, *args, **kwd):
+        """ Pass the check_inputs call to the first element. """
         if self.segments:
             return self.segments[0].check_inputs(previous, *args, **kwd)
 
     def process(self, *args, **kwd):
         """ Process inputs and deliver an output. """
 
-        self.log.success('starting up')
+        self.log.info('starting up')
 
         data = NextInput(args, kwd)
         previous = None
@@ -164,20 +169,34 @@ class PypeLine(PypeSegment):
 
             self.log.debug('next input: %s', data)
 
-            # let the next segment check the input (and probably crash early)
-            segment.check_inputs(previous, *data.args, **data.kwd)
+            try:
+                # let the next segment check the input (and probably crash early)
+                segment.check_inputs(previous, *data.args, **data.kwd)
+                self.log.info('%s says input is ok', segment)
 
-            self.log.info('%s says: input is ok.' % segment)
+                # do the processing
+                data = segment.process(*data.args, **data.kwd)
+                self.log.info('%s is done', segment)
 
-            # do the processing
-            data = segment.process(*data.args, **data.kwd)
-
-            self.log.info('%s: result = %s' % (segment, data))
+            except Exception as ex:
+                if self.continue_on_errors:
+                    self.log.warning(
+                        '%s failed, but processing will continue.', segment,
+                        exc_info=True,
+                    )
+                else:
+                    self.log.error(
+                        '%s could not process %r\n',
+                        segment, data,
+                        exc_info=True, # add traceback information to the exception
+                    )
+                    raise
 
             # goto next
             previous = segment
 
-        self.log.info('output = %s', data)
+        self.log.success('output was produced.')
+        self.log.debug('output was %r', data)
 
         return data
 

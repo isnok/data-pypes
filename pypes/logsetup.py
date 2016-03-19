@@ -36,6 +36,9 @@
 
         For that loglevel a convenience method (logger.success) will be added
         to every logger created through setup_logger.
+
+        >>> logger = setup_logger('test')
+        >>> logger.info('Result invisible to doctest...')
 """
 import os
 import sys
