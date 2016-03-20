@@ -106,7 +106,9 @@ termcolors = dict(
     purple='\033[95m',
     cyan='\033[96m',
     white='\033[97m',
-    eight='\033[98m',
+    grey='\033[98m',
+    bold='\033[1m',
+    underline='\033[4m',
 )
 def colored(color, string):
     sequence = termcolors.get(color, reset_color)
