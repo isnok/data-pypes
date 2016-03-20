@@ -1,8 +1,9 @@
-![build-status](https://travis-ci.org/isnok/data-pypes.svg?branch=master)
+[![build-status](https://travis-ci.org/isnok/data-pypes.svg?branch=master)](https://travis-ci.org/isnok/py-flowlib)
+
 
 # The DataPypes framework
 
-Yet another service framework is born.
+Another attempt to structure processes.
 
 ## Documentation
 
