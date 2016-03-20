@@ -1,12 +1,29 @@
 ![build-status](https://travis-ci.org/isnok/data-pypes.svg?branch=master)
 
-# Tha DataPypes framework
+# The DataPypes framework
 
 Yet another service framework is born.
 
 ## Documentation
 
-To make this code hands-on useful, it is mostly documented in the code.
+To make this hands-on useful, it is mostly documented in the code.
+
+## Play around
+
+Here are some interesting invocations of `pypes-example.py`.
+
+```shell
+./pypes-example.py
+...
+LOGLEVEL=DEBUG ./pypes-example.py
+...
+LOGLEVEL=debug STDOUT_LOGLEVEL=error ./pypes-example.py
+...
+LOGLEVEL=debug STDOUT_LOGLEVEL=info ERROR_LOGFILE=error.log ./pypes-example.py
+...
+STDOUT_LOGLEVEL=success WARNING_LOGFILE=warn.log ./pypes-example.py
+...
+```
 
 ## Usage
 
