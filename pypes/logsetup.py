@@ -54,7 +54,7 @@ logging.addLevelName(SUCCESS, 'SUCCESS')
 PYTHON_3 = sys.version_info[0] == 3
 
 if PYTHON_3:
-    levelnames = logging._nameToLevel
+    levelnames = logging._nameToLevel # pylint: disable=E1101
 else:
     levelnames = logging._levelNames # pylint: disable=E1101
 
