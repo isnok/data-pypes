@@ -1,3 +1,5 @@
+![build-status](https://travis-ci.org/isnok/data-pypes.svg?branch=master)
+
 # Tha DataPypes framework
 
 Yet another service framework is born.
