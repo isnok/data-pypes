@@ -1,4 +1,4 @@
-[![build-status](https://travis-ci.org/isnok/data-pypes.svg?branch=master)](https://travis-ci.org/isnok/py-flowlib)
+[![build-status](https://travis-ci.org/isnok/data-pypes.svg?branch=master)](https://travis-ci.org/isnok/data-pypes)
 
 
 # The DataPypes framework
