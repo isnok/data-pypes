@@ -39,6 +39,7 @@
 
         >>> logger = setup_logger('test')
         >>> logger.info('Result invisible to doctest...')
+        [20] - test - Result invisible to doctest...
 
         Color will be used for stdout, if sys.stdout.isatty().
 """
@@ -117,15 +118,17 @@ def colored(color, string):
 def stdout_log_format(name):
     if not sys.stdout.isatty():
         fmt = ' - '.join([
-            '%(asctime)s',
-            '[%(levelno)d] %(levelname)-8.8s',
+            # '%(asctime)s',
+            # '[%(levelno)d] %(levelname)-8.8s',
+            '[%(levelno)d]',
             name,
             '%(message)s',
         ])
     else:
         fmt = colored('purple', ' - ').join([
-            colored('blue', '%(asctime)s'),
-            colored('yellow', '[%(levelno)d] %(levelname)-8.8s'),
+            # colored('blue', '%(asctime)s'),
+            # colored('yellow', '[%(levelno)d] %(levelname)-8.8s'),
+            colored('yellow', '[%(levelno)d]'),
             colored('green', name),
             colored('white', '%(message)s'),
         ])

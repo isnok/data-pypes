@@ -133,6 +133,12 @@ class PypeLine(PypeSegment):
     >>> len(pype.segments)
     2
     >>> pype.process()
+    [20] - PypeLine.test - starting up
+    [20] - PypeLine.test - PypeSegment.noop says input is ok
+    [20] - PypeLine.test - PypeSegment.noop is done
+    [20] - PypeLine.test - PypeSegment.noop says input is ok
+    [20] - PypeLine.test - PypeSegment.noop is done
+    [25] - PypeLine.test - output was produced.
     NextInput(args=(), kwd={})
     """
 
