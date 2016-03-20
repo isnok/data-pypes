@@ -92,7 +92,7 @@ def get_logconfig():
     else:
         stdout_loglevel = level
 
-    color_stdout = 'COLOR_STDOUT' in os.environ
+    # color_stdout = 'COLOR_STDOUT' in os.environ
 
     return level, stdout_loglevel, files
 
