@@ -56,7 +56,7 @@ PYTHON_3 = sys.version_info[0] == 3
 if PYTHON_3:
     levelnames = logging._nameToLevel
 else:
-    levelnames = logging._levelNames
+    levelnames = logging._levelNames # pylint: disable=E1101
 
 
 def get_logconfig():
