@@ -1,6 +1,17 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-""" Inspired by https://github.com/warner/python-versioneer. """
+""" flowtool-versioning cmdclass file. flowtool-versioning provides an
+    automatic versioning system based on git tags. This is the command
+    set, that it brings to add capabilities to your setup.py file to
+    deal with git tags and handle the versioning. See the link for more
+    information:
+
+        https://github.com/isnok/py-flowlib
+"""
+
+# TODO: make these files pass pylint regularly
+# pylint: disable=E0401,E1101,E0611
+
 import os
 from os.path import join, exists, isfile, isdir, dirname, basename
 try:
@@ -13,9 +24,13 @@ def find_parent_containing(name, path=None, check='exists'):
         that contains name, or None if no such parent dir exists.
         The check can be customized/chosen from exists, isfile
         and isdir.
+
+        >>> from os.path import isdir
+        >>> isdir(find_parent_containing('.'))
+        True
     """
 
-    current = os.getcwd() if path is None else path
+    current = os.path.dirname(__file__) if path is None else path
 
     if check == 'exists':
         check = exists
@@ -32,14 +47,14 @@ def find_parent_containing(name, path=None, check='exists'):
     else:
         return current
 
-def read_config(*filenames):
-    """Read the project setup.cfg file to determine Versioneer config."""
+def read_config(filename):
+    """Read the project setup.cfg file to determine versioning config."""
     # This might raise EnvironmentError (if setup.cfg is missing), or
     # configparser.NoSectionError (if it lacks a [versioneer] section), or
     # configparser.NoOptionError (if it lacks "VCS="). See the docstring at
     # the top of versioneer.py for instructions on writing your setup.cfg .
     parser = ConfigParser()
-    parser.read(filenames)
+    parser.read(filename)
     return parser
 
 setup_cfg = join(
@@ -72,12 +87,15 @@ def import_file(name, path):
     except:
         pass
 
-version_in_git = import_file('versions', source_versionfile)
-if version_in_git:
-    get_version = version_in_git.get_version
-else:
-    print("== Warning: source_versionfile %s could not be imported. (no tags found?)" % source_versionfile)
-    get_version = lambda: 'versionfile_not_installed'
+if __name__ != 'flowtool_versioning.dropins.cmdclass':
+
+    version_in_git = import_file('versions', source_versionfile)
+    if version_in_git:
+        get_version = version_in_git.get_version
+    else:
+        print("== Warning: source_versionfile %s could not be imported. (no tags found?)" % source_versionfile)
+        get_version = lambda: 'versionfile_not_installed'
+
 
 def build_versionfile():
     if parser.has_option('versioning', 'build_versionfile'):
@@ -125,6 +143,14 @@ def bump_version(info):
 
 
 def render_bumped(**kwd):
+    """ Render the bumped version.
+        >>> render_bumped(release=(1,2,3,4))
+        '1.2.3.4'
+        >>> render_bumped(release=(1,2,3,4), pre_release=('a', 5), post_release=6, dev_release=7, epoch=0)
+        '0!1.2.3.4a5.post6.dev7'
+        >>> render_bumped(release=(1,2,3), post_release=4, dev_release=5)
+        '1.2.3.post4.dev5'
+    """
     normalized = '.'.join(map(str, kwd['release']))
     if 'pre_release' in kwd:
         normalized += '%s%s' % kwd['pre_release']
