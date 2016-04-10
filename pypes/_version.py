@@ -25,6 +25,11 @@ exec(template)
 from pprint import pformat
 
 def render_static_file():
+    """ Render the version information into the static file template.
+
+        >>> render_static_file().startswith(template[:100])
+        True
+    """
     global VERSION_INFO
     return template.format(pformat(VERSION_INFO))
 
@@ -120,6 +125,17 @@ def parse_pep440(version_string):
 
         >>> parse_pep440('1.2.3.4')['release']
         (1, 2, 3, 4)
+        >>> v = parse_pep440('0!1.2.3.4.b5.post6.dev7')
+        >>> v['release']
+        (1, 2, 3, 4)
+        >>> v['pre_release']
+        ('b', 5)
+        >>> v['post_release']
+        6
+        >>> v['dev_release']
+        7
+        >>> v['epoch']
+        '0'
     """
 
     try:
@@ -157,6 +173,11 @@ def parse_pep440(version_string):
 
 
 def normalize_pep440(**kwd):
+    """ Normalize the version.
+
+        >>> normalize_pep440(**parse_pep440('1.2.3.4.rc5.post.dev'))
+        '1.2.3.4rc5'
+    """
     normalized = '.'.join(map(str, kwd['release']))
     if 'pre_release' in kwd:
         normalized += '%s%s' % kwd['pre_release']
@@ -177,6 +198,11 @@ def get_commit(identifier):
 
 
 def commit_distance(a, b):
+    """ Return the number of commits between a and b.
+
+        >>> commit_distance('HEAD', 'HEAD^')
+        1
+    """
     rng = '%s...%s' % (a, b)
     return int(get_stdout('git', 'rev-list', '--count', rng))
 
@@ -197,6 +223,17 @@ def get_tags_matching(prefix=''):
 
 
 def gather_vcs_info(prefix):
+    """ Gather information from the Version Control System (git).
+
+        >>> i = gather_vcs_info('pfx')
+        >>> i['prefix']
+        'pfx'
+        >>> j = gather_vcs_info('sfx')
+        >>> j['commit'] == i['commit']
+        True
+        >>> j['dirt'] == i['dirt']
+        True
+    """
     distances = get_tags_matching(prefix)
 
     vcs_info = dict(
@@ -226,7 +263,11 @@ def gather_vcs_info(prefix):
 ### customizable versioning schemes
 
 def vcs_versioning(version_info):
-    """ Just use the information from the vcs, and format it nicely. """
+    """ Use the information from the vcs, and format it nicely.
+
+        >>> vcs_versioning({'vcs_info': {'dirt': ' M flowtool_versioning/dropins/version.py\\n', 'prefix_tag_distances': {'flowtool-versioning-0.7.33': 53, 'flowtool-versioning-0.7.32': 134, 'flowtool-versioning-0.7.34': 37}, 'tag_version': {'normalized': '0.7.34', 'version': '0.7.34', 'release': (0, 7, 34)}, 'latest_tag': 'flowtool-versioning-0.7.34', 'latest_tag_version': '0.7.34', 'latest_tag_commit': 'b25974fb03e02f491ace23d2718a847a6d01853d', 'commit': 'a06e7d03436457883e2bce2ebe7968886943e2bb', 'prefix': 'flowtool-versioning-'}, 'version': '0.7.34+37.git:b25974fb.dirty'})
+        '0.7.34+37.git:b25974fb.dirty'
+    """
 
     vcs_info = version_info['vcs_info']
 
@@ -248,7 +289,12 @@ def vcs_versioning(version_info):
     return vcs_version
 
 def snapshot_versioning(version_info):
-    """ Just use the pep440-validated tag-version and add -SNAPSHOT if git is dirty """
+    """ Just use the pep440-validated tag-version and add -SNAPSHOT if git is dirty.
+
+        >>> snapshot_versioning({'vcs_info': {}})
+        >>> snapshot_versioning({'vcs_info': {'dirt': ' M flowtool_versioning/dropins/version.py\\n', 'prefix_tag_distances': {'flowtool-versioning-0.7.33': 53, 'flowtool-versioning-0.7.32': 134, 'flowtool-versioning-0.7.34': 37}, 'tag_version': {'normalized': '0.7.34', 'version': '0.7.34', 'release': (0, 7, 34)}, 'latest_tag': 'flowtool-versioning-0.7.34', 'latest_tag_version': '0.7.34', 'latest_tag_commit': 'b25974fb03e02f491ace23d2718a847a6d01853d', 'commit': 'a06e7d03436457883e2bce2ebe7968886943e2bb', 'prefix': 'flowtool-versioning-'}, 'version': '0.7.34+37.git:b25974fb.dirty'})
+        '0.7.34-SNAPSHOT'
+    """
 
     if not 'tag_version' in version_info['vcs_info']:
         return
@@ -275,5 +321,4 @@ try:
 
     if version:
         VERSION_INFO['version'] = version
-except:
-    pass
+except: pass
