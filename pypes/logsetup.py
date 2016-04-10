@@ -59,14 +59,27 @@ else:
     levelnames = logging._levelNames # pylint: disable=E1101
 
 
-def get_logconfig():
+def get_logconfig(level=None):
     """ Get logging configuration from environment.
 
         Returns:
             level, stdout_loglevel, files
+
+        >>> get_logconfig()
+        (20, 20, {})
+        >>> get_logconfig(20)
+        (20, 20, {})
+        >>> get_logconfig('INFO')
+        (20, 20, {})
+
+        >>> import os
+        >>> os.environ['STDOUT_LOGLEVEL'] = 'INFO'
+        >>> get_logconfig()
+        (20, 20, {})
     """
 
-    level = os.environ.get('LOGLEVEL')
+    if level is None:
+        level = os.environ.get('LOGLEVEL')
 
     if level is None:
         level = logging.INFO
@@ -112,25 +125,48 @@ termcolors = dict(
     underline='\033[4m',
 )
 def colored(color, string):
+    """ Add color sequences to a string.
+
+        >>> colored('blue', 'jazzjazzjazzjazz...')
+        '\\x1b[94mjazzjazzjazzjazz...\\x1b[0m'
+    """
     sequence = termcolors.get(color, reset_color)
     return '{}{}{}'.format(sequence, string, reset_color)
 
-def stdout_log_format(name):
-    if not sys.stdout.isatty():
-        fmt = ' - '.join([
-            # '%(asctime)s',
-            # '[%(levelno)d] %(levelname)-8.8s',
-            '[%(levelno)d]',
-            name,
-            '%(message)s',
-        ])
-    else:
+def stdout_log_format(name, use_color=None):
+    """ Return the log format for stdout.
+        If use_color is None this auto-adjusts.
+
+        >>> colored = stdout_log_format('test', use_color=True)
+        >>> 'test' in colored
+        True
+        >>> '%(message)s' in colored
+        True
+        >>> no_color = stdout_log_format('test', use_color=False)
+        >>> 'test' in no_color
+        True
+        >>> '%(message)s' in no_color
+        True
+        >>> no_color != colored
+        True
+    """
+    use_color = sys.stdout.isatty() if use_color is None else use_color
+
+    if use_color:
         fmt = colored('purple', ' - ').join([
             # colored('blue', '%(asctime)s'),
             # colored('yellow', '[%(levelno)d] %(levelname)-8.8s'),
             colored('yellow', '[%(levelno)d]'),
             colored('green', name),
             colored('white', '%(message)s'),
+        ])
+    else:
+        fmt = ' - '.join([
+            # '%(asctime)s',
+            # '[%(levelno)d] %(levelname)-8.8s',
+            '[%(levelno)d]',
+            name,
+            '%(message)s',
         ])
     return fmt
 
@@ -154,6 +190,13 @@ def setup_logger(name):
 
         To prevent duplicate adding of handlers to already existing loggers,
         the set of created loggers is cached in the global loggers dict.
+
+        >>> import os
+        >>> os.environ['ERROR_LOGFILE'] = '/tmp/pypes_logging_test.log'
+        >>> logger = setup_logger('test')
+        >>> logger.success('Result invisible to doctest...')
+        [25] - test - Result invisible to doctest...
+
     """
     if name in loggers:
         return loggers[name]
