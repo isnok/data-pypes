@@ -1,5 +1,11 @@
 [![build-status](https://travis-ci.org/isnok/data-pypes.svg?branch=master)](https://travis-ci.org/isnok/data-pypes)
 
+[![PyPI Python Versions](https://img.shields.io/pypi/pyversions/data-pypes.svg)](https://pypi.python.org/pypi/data-pypes)
+[![PyPI Latest Version](https://img.shields.io/pypi/v/data-pypes.svg)](https://pypi.python.org/pypi/data-pypes)
+[![PyPI Distribution Format](https://img.shields.io/pypi/format/data-pypes.svg)](https://pypi.python.org/pypi/data-pypes)
+[![build-status](https://travis-ci.org/isnok/data-pypes.svg?branch=master)](https://travis-ci.org/isnok/data-pypes)
+[![Coverage Status](https://coveralls.io/repos/github/isnok/data-pypes/badge.svg?branch=master)](https://coveralls.io/github/isnok/data-pypes?branch=master)
+
 
 # The DataPypes framework
 
