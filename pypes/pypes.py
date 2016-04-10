@@ -132,6 +132,7 @@ class PypeLine(PypeSegment):
     'PypeLine.test'
     >>> len(pype.segments)
     2
+    >>> pype.check_inputs('no_previous')
     >>> pype.process()
     [20] - PypeLine.test - starting up
     [20] - PypeLine.test - PypeSegment.noop says input is ok
