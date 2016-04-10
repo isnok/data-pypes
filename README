@@ -1,5 +1,3 @@
-[![build-status](https://travis-ci.org/isnok/data-pypes.svg?branch=master)](https://travis-ci.org/isnok/data-pypes)
-
 [![PyPI Python Versions](https://img.shields.io/pypi/pyversions/data-pypes.svg)](https://pypi.python.org/pypi/data-pypes)
 [![PyPI Latest Version](https://img.shields.io/pypi/v/data-pypes.svg)](https://pypi.python.org/pypi/data-pypes)
 [![PyPI Distribution Format](https://img.shields.io/pypi/format/data-pypes.svg)](https://pypi.python.org/pypi/data-pypes)
