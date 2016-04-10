@@ -33,6 +33,7 @@ $ STDOUT_LOGLEVEL=success WARNING_LOGFILE=warn.log ./pypes-example.py
 ## Usage
 
 The ideas is very general.
+`pypes-example.py` contains an example (that could still be revisited to point out the idea more).
 It was intended to structure "long" comutational processes into reusable elements.
 
 The file `logsetup.py` can also be use stand-alone.
