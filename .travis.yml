@@ -10,5 +10,5 @@ install:
     - pip install -U tox pytest pytest-cov coveralls
 script:
     - make travis
-after_install:
+after_success:
     - coveralls
