@@ -55,6 +55,15 @@ failing_process = PypeLine(
 
 
 def main():
+    """ Run an example.
+
+        >>> main()
+        <BLANKLINE>
+        ==== Simple Processing ====
+        <BLANKLINE>
+        ...
+
+    """
     print('\n==== Simple Processing ====\n')
     result = combined_process.process()
     main_logger.success("First result: %s", result)
@@ -70,5 +79,4 @@ def main():
     failing_process.process()
 
 
-if __name__ == '__main__':
-    main()
+if __name__ == '__main__': main()
