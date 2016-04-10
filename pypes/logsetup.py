@@ -69,6 +69,8 @@ def get_logconfig(level=None):
         (20, 20, {})
         >>> get_logconfig(20)
         (20, 20, {})
+        >>> get_logconfig('20')
+        (20, 20, {})
         >>> get_logconfig('INFO')
         (20, 20, {})
 
