@@ -1,5 +1,5 @@
 
-travis: tox pytest coverage
+travis: pytest coverage
 
 tox:
 	tox
