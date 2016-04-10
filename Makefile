@@ -12,5 +12,6 @@ coverage:
 
 all: tox pytest coverage
 
+test: pytest
 
 .PHONY : pytest tox coverage travis

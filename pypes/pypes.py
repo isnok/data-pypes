@@ -108,9 +108,9 @@ class PypeSegment(object):
             triggered by a Pypeline.
         """
 
-        if False:
-            msg = "{} did not supply 'required_value' as input to {}"
-            raise ValueError(msg.format(previous, self))
+        #if not my_input_check(args, kwd):
+        #    msg = "{} did not supply 'required_value' as input to {}"
+        #    raise ValueError(msg.format(previous, self))
 
     def process(self, *args, **kwd):
         """ Process inputs and deliver an output.
@@ -205,8 +205,3 @@ class PypeLine(PypeSegment):
         self.log.debug('output was %r', data)
 
         return data
-
-
-if __name__ == '__main__':
-    import doctest
-    doctest.testmod()
