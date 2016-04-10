@@ -7,7 +7,8 @@ install:
     # - pip install -e .
     # - pip install -U pytest
     # - pip install -U tox
-    - pip install -U tox pytest
+    - pip install -U tox pytest pytest-cov coveralls
 script:
-    - py.test --doctest-modules
-    - tox
+    - make travis
+after_install:
+    - coveralls
