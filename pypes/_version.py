@@ -15,9 +15,17 @@ template = '''"""
 
 VERSION_INFO = {}
 
+no_version_version = '0'
+git_export_version = '$Format:%d %H$'
+
 def get_version():
     global VERSION_INFO
-    return VERSION_INFO.get('version', '$Format:%d %H$')
+    if 'version' in VERSION_INFO:
+        return VERSION_INFO['version']
+    elif not 'Format' in git_export_version:
+        return git_export_version
+    else:
+        return no_version_version
 '''
 
 exec(template)
@@ -271,46 +279,78 @@ def gather_vcs_info(prefix):
 def vcs_versioning(version_info):
     """ Use the information from the vcs, and format it nicely.
 
-        >>> vcs_versioning({'vcs_info': {'dirt': ' M flowtool_versioning/dropins/version.py\\n', 'prefix_tag_distances': {'flowtool-versioning-0.7.33': 53, 'flowtool-versioning-0.7.32': 134, 'flowtool-versioning-0.7.34': 37}, 'tag_version': {'normalized': '0.7.34', 'version': '0.7.34', 'release': (0, 7, 34)}, 'latest_tag': 'flowtool-versioning-0.7.34', 'latest_tag_version': '0.7.34', 'latest_tag_commit': 'b25974fb03e02f491ace23d2718a847a6d01853d', 'commit': 'a06e7d03436457883e2bce2ebe7968886943e2bb', 'prefix': 'flowtool-versioning-'}, 'version': '0.7.34+37.git:b25974fb.dirty'})
-        '0.7.34+37.git:b25974fb.dirty'
-        >>> vcs_versioning({'vcs_info': {}, 'version': '0.7.34+37.git:b25974fb.dirty'})
+        >>> vcs_versioning({'vcs_info': {}})
+        '0'
+        >>> vcs_versioning({'vcs_info': {'commit': 'b838e311995cd969932bad49b9757b95f55c6622',
+        ...  'dirt': ' M ../versioning/flowtool_versioning/dropins/version.py\\n',
+        ...  'latest_tag': 'flowtool-all-0.7.19',
+        ...  'latest_tag_commit': '5d84b2dd0146ac2da8d736147d9c4bb41d4299dd',
+        ...  'latest_tag_version': '0.7.19-boo!',
+        ...  'prefix': 'flowtool-all-',
+        ...  'prefix_tag_distances': {'flowtool-all-0.7.19': 98}},
+        ... 'version': '0.7.19.dev98.dirty'})
+        '0.dirty'
+        >>> vcs_versioning({'vcs_info': {'commit': 'b838e311995cd969932bad49b9757b95f55c6622',
+        ...  'dirt': ' M ../versioning/flowtool_versioning/dropins/version.py\\n',
+        ...  'latest_tag': 'flowtool-all-0.7.19',
+        ...  'latest_tag_commit': '5d84b2dd0146ac2da8d736147d9c4bb41d4299dd',
+        ...  'latest_tag_version': '0.7.19',
+        ...  'prefix': 'flowtool-all-',
+        ...  'prefix_tag_distances': {'flowtool-all-0.7.19': 0},
+        ...  'tag_version': {'normalized': '0.7.19',
+        ...   'release': (0, 7, 19),
+        ...   'version': '0.7.19'}},
+        ... 'version': '0.7.19.dev98.dirty'})
+        '0.7.19.dirty'
+        >>> vcs_versioning({'vcs_info': {'commit': 'b838e311995cd969932bad49b9757b95f55c6622',
+        ...  'dirt': '',
+        ...  'latest_tag': 'flowtool-all-0.7.19',
+        ...  'latest_tag_commit': '5d84b2dd0146ac2da8d736147d9c4bb41d4299dd',
+        ...  'latest_tag_version': '0.7.19.dev2',
+        ...  'prefix': 'flowtool-all-',
+        ...  'prefix_tag_distances': {'flowtool-all-0.7.19': 98},
+        ...  'tag_version': {'normalized': '0.7.19',
+        ...   'release': (0, 7, 19),
+        ...   'version': '0.7.19'}},
+        ... 'version': '0.7.19.dev98.dirty'})
+        '0.7.19.dev100'
+        >>> vcs_versioning({'vcs_info': {'commit': 'b838e311995cd969932bad49b9757b95f55c6622',
+        ...  'dirt': ' M ../versioning/flowtool_versioning/dropins/version.py\\n',
+        ...  'latest_tag': 'flowtool-all-0.7.19',
+        ...  'latest_tag_commit': '5d84b2dd0146ac2da8d736147d9c4bb41d4299dd',
+        ...  'latest_tag_version': '0.7.19',
+        ...  'prefix': 'flowtool-all-',
+        ...  'prefix_tag_distances': {'flowtool-all-0.7.19': 98}},
+        ... 'version': '0.7.19.dev98.dirty'})
+        '0.7.19.dev98.dirty'
     """
 
     vcs_info = version_info['vcs_info']
 
     if not 'latest_tag' in vcs_info:
-        return
+        return '0'
 
     tag = vcs_info['latest_tag']
     distance = vcs_info['prefix_tag_distances'][tag]
 
-    vcs_version = vcs_info['latest_tag_version']
+    vcs_version = parse_pep440(vcs_info['latest_tag_version'])
 
-    if distance:
-        commit = vcs_info['latest_tag_commit'][:8]
-        vcs_version += '+%s.git:%s' % (distance, commit)
+    if vcs_version and distance:
+        if 'dev_release' in vcs_version:
+            vcs_version['dev_release'] += distance
+        else:
+            vcs_version['dev_release'] = distance
+
+        vcs_version = normalize_pep440(**vcs_version)
+    elif vcs_version:
+        vcs_version = normalize_pep440(**vcs_version)
+    elif not vcs_version:
+        vcs_version = '0'
 
     if vcs_info['dirt']:
         vcs_version += '.dirty'
 
     return vcs_version
-
-def snapshot_versioning(version_info):
-    """ Just use the pep440-validated tag-version and add -SNAPSHOT if git is dirty.
-
-        >>> snapshot_versioning({'vcs_info': {}})
-        >>> snapshot_versioning({'vcs_info': {'dirt': ' M flowtool_versioning/dropins/version.py\\n', 'prefix_tag_distances': {'flowtool-versioning-0.7.33': 53, 'flowtool-versioning-0.7.32': 134, 'flowtool-versioning-0.7.34': 37}, 'tag_version': {'normalized': '0.7.34', 'version': '0.7.34', 'release': (0, 7, 34)}, 'latest_tag': 'flowtool-versioning-0.7.34', 'latest_tag_version': '0.7.34', 'latest_tag_commit': 'b25974fb03e02f491ace23d2718a847a6d01853d', 'commit': 'a06e7d03436457883e2bce2ebe7968886943e2bb', 'prefix': 'flowtool-versioning-'}, 'version': '0.7.34+37.git:b25974fb.dirty'})
-        '0.7.34-SNAPSHOT'
-    """
-
-    if not 'tag_version' in version_info['vcs_info']:
-        return
-
-    version = version_info['vcs_info']['tag_version']['version']
-    if version_info['vcs_info']['dirt']:
-        version += '-SNAPSHOT'
-
-    return version
 
 
 setup_cfg = get_setup_cfg()
